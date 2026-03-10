@@ -1,9 +1,11 @@
 import cors from 'cors';
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 import dotenv from 'dotenv';
 import express from 'express';
 import fs from 'fs';
+import https from 'https';
 import multer from 'multer';
+import { URL } from 'url';
 
 dotenv.config();
 
@@ -18,8 +20,9 @@ const client = new Client({
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const UPLOAD_CHANNEL_ID = process.env.UPLOAD_CHANNEL_ID;
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log('✅ Discord bot logged in');
+  refreshCache(); // Initialize cache on login
 });
 
 client.login(DISCORD_TOKEN);
@@ -29,56 +32,31 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
-// Home page
-app.get('/', (req, res) => {
-  res.sendFile('public/index.html', { root: '.' });
-});
+// In-Memory Cache for Files
+let fileCache = [];
+let lastCacheUpdate = 0;
+const CACHE_TTL = 30 * 1000; // 30 seconds
 
-// Upload endpoint
-app.post('/upload', upload.single('file'), async (req, res) => {
+async function refreshCache() {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file provided' });
+    if (!client.isReady()) {
+      console.log('⏳ Bot not ready, skipping cache refresh');
+      return;
     }
 
     const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
-    
-    // Send file to Discord
-    await channel.send({
-      files: [{
-        attachment: req.file.path,
-        name: req.file.originalname
-      }]
-    });
+    if (!channel) {
+      console.error('❌ Upload channel not found');
+      return;
+    }
 
-    // Delete temp file
-    fs.unlinkSync(req.file.path);
-
-    res.json({ 
-      success: true, 
-      message: `✅ ${req.file.originalname} uploaded!` 
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// List all files endpoint
-app.get('/files', async (req, res) => {
-  try {
-    const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
     const files = [];
-
-    // Fetch all messages (paginated)
     let lastMessageId = null;
     let hasMore = true;
 
     while (hasMore) {
       const options = { limit: 100 };
       if (lastMessageId) options.before = lastMessageId;
-
       const messages = await channel.messages.fetch(options);
       
       if (messages.size === 0) {
@@ -98,14 +76,76 @@ app.get('/files', async (req, res) => {
           });
         }
       });
-
       lastMessageId = messages.last().id;
     }
 
-    // Reverse to show newest first
-    files.reverse();
+    fileCache = files.reverse();
+    lastCacheUpdate = Date.now();
+    console.log(`📦 Cache refreshed: ${fileCache.length} files`);
+  } catch (error) {
+    console.error('❌ Cache refresh failed:', error);
+  }
+}
 
-    res.json({ files });
+// Home page
+app.get('/', (req, res) => {
+  res.sendFile('public/index.html', { root: '.' });
+});
+
+// Upload endpoint
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
+    
+    // Create a rich embed
+    const embed = new EmbedBuilder()
+      .setTitle('📄 New File Uploaded')
+      .setDescription(`**${req.file.originalname}** has been hosted successfully.`)
+      .addFields(
+        { name: '📂 Filename', value: req.file.originalname, inline: true },
+        { name: '📏 Size', value: formatBytes(req.file.size), inline: true }
+      )
+      .setColor('#3b82f6')
+      .setTimestamp();
+
+    // Send file and embed to Discord
+    await channel.send({
+      files: [{
+        attachment: req.file.path,
+        name: req.file.originalname
+      }],
+      embeds: [embed]
+    });
+
+    // Delete temp file
+    fs.unlinkSync(req.file.path);
+
+    // Refresh cache in background
+    refreshCache();
+
+    res.json({ 
+      success: true, 
+      message: `✅ ${req.file.originalname} uploaded!` 
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// List all files endpoint
+app.get('/files', async (req, res) => {
+  try {
+    // If cache is empty or too old, refresh it
+    if (fileCache.length === 0 || (Date.now() - lastCacheUpdate > CACHE_TTL)) {
+      await refreshCache();
+    }
+    res.json({ files: fileCache });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -120,6 +160,9 @@ app.delete('/files/:messageId', async (req, res) => {
     const message = await channel.messages.fetch(messageId);
     await message.delete();
 
+    // Remove from cache locally for instant update
+    fileCache = fileCache.filter(f => f.messageId !== messageId);
+
     res.json({ success: true, message: 'File deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -128,30 +171,39 @@ app.delete('/files/:messageId', async (req, res) => {
 
 // Proxy endpoint to bypass CORS
 app.get('/proxy', async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'No URL provided' });
+  const targetUrl = req.query.url;
+  if (!targetUrl) return res.status(400).send('No URL provided');
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(targetUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0'
       }
     });
+
     if (!response.ok) {
-      return res.status(response.status).json({ error: `Failed to fetch: ${response.statusText}` });
+      return res.status(response.status).send(`Discord error: ${response.statusText}`);
     }
 
     const contentType = response.headers.get('content-type');
-    const buffer = await response.arrayBuffer();
-
     if (contentType) res.setHeader('Content-Type', contentType);
-    res.set('Access-Control-Allow-Origin', '*'); // Ensure CORS is handled
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    const buffer = await response.arrayBuffer();
     res.send(Buffer.from(buffer));
   } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Error fetching resource' });
+    console.error('❌ Proxy error:', error);
+    res.status(500).send(error.message);
   }
 });
+
+// Helper function for formatting bytes (copied from frontend logic)
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

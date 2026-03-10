@@ -25,7 +25,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
+            max-width: 700px;
             width: 100%;
             padding: 40px;
         }
@@ -117,8 +117,33 @@
             margin-bottom: 15px;
         }
         
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-label {
+            color: #999;
+            font-size: 11px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
         .file-list {
-            max-height: 300px;
+            max-height: 500px;
             overflow-y: auto;
         }
         
@@ -131,21 +156,82 @@
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
+            transition: all 0.2s;
         }
         
-        .file-item a {
+        .file-item:hover {
+            background: #f0f1f5;
+        }
+        
+        .file-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+        
+        .file-name {
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
+            word-break: break-all;
+            flex: 1;
         }
         
-        .file-item a:hover {
+        .file-name:hover {
             text-decoration: underline;
         }
         
         .file-size {
             color: #999;
             font-size: 12px;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 12px;
+        }
+        
+        .btn-download, .btn-delete {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .btn-download {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background: #764ba2;
+        }
+        
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-delete:hover {
+            background: #ff5252;
+        }
+        
+        .btn-delete:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .empty-state {
+            color: #999;
+            text-align: center;
+            padding: 40px 20px;
         }
         
         .loading {
@@ -179,9 +265,21 @@
         <div id="status"></div>
         
         <div class="files-section">
-            <h2>📋 Recent Files</h2>
+            <h2>📋 All Files</h2>
+            
+            <div class="stats" id="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Files</span>
+                    <span class="stat-value" id="fileCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Size</span>
+                    <span class="stat-value" id="totalSize">0 B</span>
+                </div>
+            </div>
+            
             <div class="file-list" id="fileList">
-                <div style="color: #999; text-align: center; padding: 20px;">Loading...</div>
+                <div class="empty-state">Loading...</div>
             </div>
         </div>
     </div>
@@ -191,6 +289,8 @@
         const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
         const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const totalSize = document.getElementById('totalSize');
 
         // Click to upload
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -260,18 +360,71 @@
                 const data = await response.json();
 
                 if (data.files.length === 0) {
-                    fileList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">No files yet</div>';
+                    fileList.innerHTML = '<div class="empty-state">No files uploaded yet</div>';
+                    fileCount.textContent = '0';
+                    totalSize.textContent = '0 B';
                     return;
                 }
 
-                fileList.innerHTML = data.files.map(file => `
-                    <div class="file-item">
-                        <a href="${file.url}" target="_blank" download>${file.name}</a>
-                        <span class="file-size">${formatBytes(file.size)}</span>
-                    </div>
-                `).join('');
+                let totalBytes = 0;
+                fileList.innerHTML = data.files.map(file => {
+                    totalBytes += file.size;
+                    return `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <a href="${file.url}" class="file-name" target="_blank" download>${file.name}</a>
+                                <span class="file-size">${formatBytes(file.size)}</span>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn-download" onclick="downloadFile('${file.url}', '${file.name}')">⬇️ Download</button>
+                                <button class="btn-delete" onclick="deleteFile('${file.messageId}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                fileCount.textContent = data.files.length;
+                totalSize.textContent = formatBytes(totalBytes);
+
             } catch (error) {
-                fileList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">Error loading files</div>';
+                fileList.innerHTML = '<div class="empty-state">Error loading files</div>';
+            }
+        }
+
+        function downloadFile(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function deleteFile(messageId) {
+            if (!confirm('Are you sure you want to delete this file?')) return;
+
+            try {
+                status.textContent = '⏳ Deleting file...';
+                status.className = '';
+                status.style.display = 'block';
+
+                const response = await fetch(`/files/${messageId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.textContent = '✅ File deleted!';
+                    status.className = 'success';
+                    loadFiles();
+                } else {
+                    status.textContent = `❌ Error: ${data.error}`;
+                    status.className = 'error';
+                }
+            } catch (error) {
+                status.textContent = `❌ Error: ${error.message}`;
+                status.className = 'error';
             }
         }
 
@@ -285,13 +438,9 @@
 
         // Load files on page load
         loadFiles();
+        
+        // Refresh file list every 5 seconds
+        setInterval(loadFiles, 5000);
     </script>
 </body>
 </html>
-```
-
-## **Step 4: Create `.env` file** (local development only)
-```
-DISCORD_TOKEN=your_bot_token_here
-UPLOAD_CHANNEL_ID=your_channel_id_here
-PORT=3000

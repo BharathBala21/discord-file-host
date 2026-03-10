@@ -1,9 +1,9 @@
-import express from 'express';
-import { Client, GatewayIntentBits, ChannelType } from 'discord.js';
 import cors from 'cors';
-import multer from 'multer';
+import { Client, GatewayIntentBits } from 'discord.js';
 import dotenv from 'dotenv';
+import express from 'express';
 import fs from 'fs';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -27,6 +27,7 @@ client.login(DISCORD_TOKEN);
 // Middleware
 app.use(cors());
 app.use(express.static('public'));
+app.use(express.json());
 
 // Home page
 app.get('/', (req, res) => {
@@ -64,27 +65,62 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// List files endpoint
+// List all files endpoint
 app.get('/files', async (req, res) => {
   try {
     const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
     const files = [];
 
-    const messages = await channel.messages.fetch({ limit: 100 });
-    
-    messages.forEach(msg => {
-      if (msg.attachments.size > 0) {
-        msg.attachments.forEach(att => {
-          files.push({
-            name: att.name,
-            url: att.url,
-            size: att.size
-          });
-        });
+    // Fetch all messages (paginated)
+    let lastMessageId = null;
+    let hasMore = true;
+
+    while (hasMore) {
+      const options = { limit: 100 };
+      if (lastMessageId) options.before = lastMessageId;
+
+      const messages = await channel.messages.fetch(options);
+      
+      if (messages.size === 0) {
+        hasMore = false;
+        break;
       }
-    });
+
+      messages.forEach(msg => {
+        if (msg.attachments.size > 0) {
+          msg.attachments.forEach(att => {
+            files.push({
+              name: att.name,
+              url: att.url,
+              size: att.size,
+              messageId: msg.id
+            });
+          });
+        }
+      });
+
+      lastMessageId = messages.last().id;
+    }
+
+    // Reverse to show newest first
+    files.reverse();
 
     res.json({ files });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete file endpoint
+app.delete('/files/:messageId', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
+    
+    const message = await channel.messages.fetch(messageId);
+    await message.delete();
+
+    res.json({ success: true, message: 'File deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

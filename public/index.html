@@ -283,6 +283,146 @@
             opacity: 0.5;
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-width: 90%;
+            max-height: 90vh;
+            width: 900px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: #0f0f0f;
+        }
+
+        .modal-filename {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .modal-btn:hover {
+            border-color: var(--border-hover);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 20px;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            background: var(--bg);
+        }
+
+        .code-viewer {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 20px;
+            color: var(--text-main);
+            white-space: pre;
+            overflow-wrap: break-word;
+        }
+
+        .code-viewer .line-number {
+            color: var(--text-dim);
+            user-select: none;
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            margin-right: 16px;
+            border-right: 1px solid var(--border);
+            padding-right: 16px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            padding: 20px;
+        }
+
+        .preview-text {
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'Courier New', monospace;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .grid {
@@ -372,6 +512,28 @@
                 </div>
             </div>
         </section>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-filename">
+                    <i data-lucide="file" size="16"></i>
+                    <span id="modalFilename">file.txt</span>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn" onclick="downloadCurrentFile()">
+                        <i data-lucide="download" size="14"></i>
+                        Download
+                    </button>
+                    <button class="modal-close" onclick="closePreview()">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -533,6 +695,9 @@
                             <button class="btn-mini" title="Download" onclick="event.stopPropagation(); downloadFile('${file.url}', '${fileName}')">
                                 <i data-lucide="download" size="16"></i>
                             </button>
+                            <button class="btn-mini" title="Preview" onclick="event.stopPropagation(); previewFile('${file.url}', '${fileName}', '${file.name}')">
+                                <i data-lucide="eye" size="16"></i>
+                            </button>
                             <button class="btn-mini danger" title="Delete" onclick="event.stopPropagation(); deleteFile('${file.messageId}')">
                                 <i data-lucide="trash-2" size="16"></i>
                             </button>
@@ -604,6 +769,76 @@
 
             setTimeout(() => pill.remove(), 4000);
         }
+
+        let currentPreviewFile = { url: '', name: '' };
+
+        async function previewFile(url, filename, originalName) {
+            currentPreviewFile = { url, name: filename };
+            const modal = document.getElementById('previewModal');
+            const modalBody = document.getElementById('modalBody');
+            const modalFilename = document.getElementById('modalFilename');
+
+            modalFilename.textContent = originalName;
+
+            const ext = originalName.split('.').pop().toLowerCase();
+            const isCode = ['js', 'py', 'go', 'java', 'cpp', 'c', 'html', 'css', 'json', 'xml', 'sql', 'sh', 'md', 'txt'].includes(ext);
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+            const isText = ['txt', 'md', 'log', 'csv'].includes(ext);
+
+            try {
+                if (isCode || isImage || isText) {
+                    const proxyUrl = `/proxy?url=${encodeURIComponent(url)}`;
+                    
+                    if (isImage) {
+                        modalBody.innerHTML = `<img src="${proxyUrl}" class="preview-image" />`;
+                    } else {
+                        const response = await fetch(proxyUrl);
+                        const content = await response.text();
+                        
+                        if (isCode) {
+                            const lines = content.split('\n').map((line, i) =>
+                                `<div><span class="line-number">${i + 1}</span>${escapeHtml(line)}</div>`
+                            ).join('');
+                            modalBody.innerHTML = `<div class="code-viewer">${lines}</div>`;
+                        } else {
+                            modalBody.innerHTML = `<div class="preview-text">${escapeHtml(content)}</div>`;
+                        }
+                    }
+                } else {
+                    modalBody.innerHTML = `<div style="padding: 20px; color: var(--text-dim);">Preview not available for this file type.</div>`;
+                }
+            } catch (error) {
+                modalBody.innerHTML = `<div style="padding: 20px; color: #ef4444;">Error loading preview: ${error.message}</div>`;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.remove('active');
+        }
+
+        function downloadCurrentFile() {
+            downloadFile(currentPreviewFile.url, currentPreviewFile.name);
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'previewModal') {
+                closePreview();
+            }
+        });
 
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';

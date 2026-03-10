@@ -208,4 +208,18 @@ function formatBytes(bytes) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  
+  // Self-ping logic for Render (Keep Alive)
+  const EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
+  if (EXTERNAL_URL) {
+    console.log(`📡 Keep-Alive enabled for: ${EXTERNAL_URL}`);
+    setInterval(async () => {
+      try {
+        await fetch(EXTERNAL_URL);
+        console.log('💓 Keep-alive ping sent');
+      } catch (err) {
+        console.error('❌ Keep-alive ping failed:', err.message);
+      }
+    }, 10 * 60 * 1000); // Every 10 minutes
+  }
 });

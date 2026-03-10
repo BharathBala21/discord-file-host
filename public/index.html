@@ -1,317 +1,438 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord File Host</title>
+    <title>Vault — File Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        :root {
+            --bg: #0b0b0b;
+            --surface: #141414;
+            --border: rgba(255, 255, 255, 0.05);
+            --border-hover: rgba(255, 255, 255, 0.1);
+            --text-main: #f5f5f5;
+            --text-dim: #737373;
+            --accent: #3b82f6;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.4;
+            -webkit-font-smoothing: antialiased;
         }
-        
+
         .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 700px;
-            width: 100%;
-            padding: 40px;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 80px 48px;
         }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+
+        header {
+            margin-bottom: 80px;
         }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        
-        .upload-area {
-            border: 2px dashed #667eea;
-            border-radius: 8px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9ff;
-        }
-        
-        .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
-        }
-        
-        .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8ebff;
-        }
-        
-        .upload-area input {
-            display: none;
-        }
-        
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        
-        .upload-text {
-            color: #667eea;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .upload-hint {
-            color: #999;
-            font-size: 12px;
-        }
-        
-        #status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            display: none;
-            font-size: 14px;
-        }
-        
-        #status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-        
-        #status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-        
-        .files-section {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        
-        .files-section h2 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 15px;
-        }
-        
-        .stats {
+
+        .logo {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
             display: flex;
-            gap: 20px;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-            font-size: 12px;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
         }
-        
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .stat-label {
-            color: #999;
-            font-size: 11px;
-        }
-        
-        .stat-value {
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .file-list {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        .file-item {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 8px;
+
+        .section-header {
+            margin: 60px 0 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
-            transition: all 0.2s;
         }
-        
-        .file-item:hover {
-            background: #f0f1f5;
-        }
-        
-        .file-info {
-            flex: 1;
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: "";
+            height: 1px;
+            width: 30px;
+            background: var(--border);
+        }
+
+        /* 3-Column Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        /* Card Style - Reference Image Style */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+            background: #1a1a1a;
+            transform: translateY(-2px);
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .card:hover .card-icon {
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .card-content {
+            flex: 1;
             min-width: 0;
         }
-        
-        .file-name {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            word-break: break-all;
-            flex: 1;
-        }
-        
-        .file-name:hover {
-            text-decoration: underline;
-        }
-        
-        .file-size {
-            color: #999;
-            font-size: 12px;
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
             white-space: nowrap;
-            margin-left: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        
-        .file-actions {
-            display: flex;
-            gap: 6px;
-            margin-left: 12px;
-        }
-        
-        .btn-download, .btn-delete {
-            padding: 6px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+
+        .card-meta {
             font-size: 12px;
-            transition: all 0.2s;
+            color: var(--text-dim);
         }
-        
-        .btn-download {
-            background: #667eea;
-            color: white;
+
+        /* Action Buttons on Hover */
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: var(--transition);
+            flex-shrink: 0;
         }
-        
-        .btn-download:hover {
-            background: #764ba2;
+
+        .card:hover .card-actions {
+            opacity: 1;
         }
-        
-        .btn-delete {
-            background: #ff6b6b;
-            color: white;
+
+        .btn-mini {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        
-        .btn-delete:hover {
-            background: #ff5252;
+
+        .btn-mini:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
         }
-        
-        .btn-delete:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+
+        .btn-mini.danger:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
         }
-        
-        .empty-state {
-            color: #999;
+
+        /* Upload Zone */
+        .upload-area {
+            grid-column: 1 / -1;
+            background: transparent;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 48px;
             text-align: center;
-            padding: 40px 20px;
+            cursor: pointer;
+            transition: var(--transition);
         }
-        
-        .loading {
-            display: inline-block;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #667eea;
-            animation: blink 1s infinite;
-            margin-right: 4px;
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.02);
         }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        #status-container {
+            margin-top: 16px;
+            grid-column: 1 / -1;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .status-pill.success {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .status-pill.error {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Stats */
+        .stats-info {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            color: var(--text-dim);
+            font-size: 14px;
+            text-align: center;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 24px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>📁 File Host</h1>
-        <p class="subtitle">Upload files to Discord (Max 25MB)</p>
-        
-        <div class="upload-area" id="uploadArea">
-            <input type="file" id="fileInput" multiple>
-            <div class="upload-icon">📤</div>
-            <div class="upload-text">Click to upload or drag files here</div>
-            <div class="upload-hint">Supported: All file types (Max 25MB)</div>
-        </div>
-        
-        <div id="status"></div>
-        
-        <div class="files-section">
-            <h2>📋 All Files</h2>
-            
-            <div class="stats" id="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Total Files</span>
-                    <span class="stat-value" id="fileCount">0</span>
+        <header>
+            <div class="logo">
+                <i data-lucide="box" size="20"></i>
+                Vault
+            </div>
+        </header>
+
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">Upload</h2>
+            </div>
+            <div class="grid">
+                <div class="upload-area" id="uploadZone">
+                    <input type="file" id="fileInput" multiple style="display: none;">
+                    <i data-lucide="cloud-upload" size="32" style="margin-bottom: 12px; color: var(--text-dim);"></i>
+                    <p style="font-size: 14px; font-weight: 500;">Drop files here to host</p>
+                    <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Max 25MB per file</p>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Total Size</span>
-                    <span class="stat-value" id="totalSize">0 B</span>
+                <div id="status-container"></div>
+            </div>
+        </section>
+
+        <section id="librarySection">
+            <div class="section-header">
+                <h2 class="section-title">Library</h2>
+                <div class="stats-info">
+                    <span id="fileCount">0</span> Files — <span id="totalSize">0 B</span>
                 </div>
             </div>
-            
-            <div class="file-list" id="fileList">
-                <div class="empty-state">Loading...</div>
+
+            <div style="margin-bottom: 32px;">
+                <input type="text" id="searchInput" placeholder="Search files..." style="
+                        width: 100%;
+                        background: var(--surface);
+                        border: 1px solid var(--border);
+                        border-radius: 6px;
+                        padding: 12px 16px;
+                        color: var(--text-main);
+                        font-size: 14px;
+                        font-family: 'Inter', sans-serif;
+                        transition: var(--transition);
+                    " />
+                <style>
+                    #searchInput:focus {
+                        outline: none;
+                        border-color: var(--accent);
+                        background: #1a1a1a;
+                    }
+
+                    #searchInput::placeholder {
+                        color: var(--text-dim);
+                    }
+                </style>
             </div>
-        </div>
+
+            <div class="grid" id="fileList">
+                <div class="empty-state">
+                    <div class="empty-icon">📂</div>
+                    <div>No files yet. Upload something to get started.</div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
-        const uploadArea = document.getElementById('uploadArea');
+        lucide.createIcons();
+
+        const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
-        const status = document.getElementById('status');
+        const statusContainer = document.getElementById('status-container');
         const fileList = document.getElementById('fileList');
-        const fileCount = document.getElementById('fileCount');
-        const totalSize = document.getElementById('totalSize');
+        const fileCountSpan = document.getElementById('fileCount');
+        const totalSizeSpan = document.getElementById('totalSize');
+        const searchInput = document.getElementById('searchInput');
 
-        // Click to upload
-        uploadArea.addEventListener('click', () => fileInput.click());
+        let allFiles = [];
 
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            filterAndDisplayFiles(query);
         });
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
+        function filterAndDisplayFiles(query) {
+            if (query === '') {
+                displayFiles(allFiles);
+                return;
+            }
+
+            const filtered = allFiles.filter(file =>
+                file.name.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <div>No files matching "${query}"</div>
+                    </div>
+                `;
+                return;
+            }
+
+            displayFiles(filtered);
+        }
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
         });
 
-        uploadArea.addEventListener('drop', (e) => {
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.classList.remove('dragover');
+            uploadZone.classList.remove('dragover');
             handleFiles(e.dataTransfer.files);
         });
 
-        // File input change
         fileInput.addEventListener('change', (e) => {
             handleFiles(e.target.files);
         });
@@ -326,32 +447,34 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            const pill = document.createElement('div');
+            pill.className = 'status-pill';
+            pill.innerHTML = `<i data-lucide="loader-2" size="14"></i><span>Uploading ${file.name}...</span>`;
+            statusContainer.innerHTML = '';
+            statusContainer.appendChild(pill);
+            lucide.createIcons();
+
             try {
-                status.textContent = `⏳ Uploading ${file.name}...`;
-                status.className = '';
-                status.style.display = 'block';
-
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/upload', { method: 'POST', body: formData });
                 const data = await response.json();
 
                 if (response.ok) {
-                    status.textContent = `✅ ${file.name} uploaded!`;
-                    status.className = 'success';
+                    pill.className = 'status-pill success';
+                    pill.innerHTML = `<i data-lucide="check-circle-2" size="14" style="color: #22c55e"></i><span>${file.name} uploaded</span>`;
+                    lucide.createIcons();
                     loadFiles();
                 } else {
-                    status.textContent = `❌ Error: ${data.error}`;
-                    status.className = 'error';
+                    pill.className = 'status-pill error';
+                    pill.innerHTML = `<i data-lucide="alert-circle" size="14" style="color: #ef4444"></i><span>Error: ${data.error}</span>`;
+                    lucide.createIcons();
                 }
             } catch (error) {
-                status.textContent = `❌ Error: ${error.message}`;
-                status.className = 'error';
+                pill.className = 'status-pill error';
+                pill.innerHTML = `<i data-lucide="alert-circle" size="14" style="color: #ef4444"></i><span>Network error</span>`;
+                lucide.createIcons();
             }
 
-            fileInput.value = '';
+            setTimeout(() => pill.remove(), 4000);
         }
 
         async function loadFiles() {
@@ -360,38 +483,87 @@
                 const data = await response.json();
 
                 if (data.files.length === 0) {
-                    fileList.innerHTML = '<div class="empty-state">No files uploaded yet</div>';
-                    fileCount.textContent = '0';
-                    totalSize.textContent = '0 B';
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📂</div>
+                            <div>No files yet. Upload something to get started.</div>
+                        </div>
+                    `;
+                    updateStats(0, 0);
+                    allFiles = [];
                     return;
                 }
 
-                let totalBytes = 0;
-                fileList.innerHTML = data.files.map(file => {
-                    totalBytes += file.size;
-                    return `
-                        <div class="file-item">
-                            <div class="file-info">
-                                <a href="${file.url}" class="file-name" target="_blank" download>${file.name}</a>
-                                <span class="file-size">${formatBytes(file.size)}</span>
-                            </div>
-                            <div class="file-actions">
-                                <button class="btn-download" onclick="downloadFile('${file.url}', '${file.name}')">⬇️ Download</button>
-                                <button class="btn-delete" onclick="deleteFile('${file.messageId}')">🗑️ Delete</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                fileCount.textContent = data.files.length;
-                totalSize.textContent = formatBytes(totalBytes);
-
-            } catch (error) {
-                fileList.innerHTML = '<div class="empty-state">Error loading files</div>';
+                allFiles = data.files;
+                displayFiles(allFiles);
+                updateStats(allFiles.length, allFiles.reduce((sum, f) => sum + f.size, 0));
+            } catch (err) {
+                console.error(err);
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div>Error loading files</div>
+                    </div>
+                `;
             }
         }
 
-        function downloadFile(url, filename) {
+        function displayFiles(files) {
+            if (files.length === 0) {
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📂</div>
+                        <div>No files found.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            fileList.innerHTML = files.map(file => {
+                const fileName = file.name.replace(/'/g, "\\'");
+                return `
+                    <div class="card">
+                        <div class="card-icon">
+                            <i data-lucide="${getFileIconName(file.name)}"></i>
+                        </div>
+                        <div class="card-content" style="cursor: pointer;" onclick="downloadFile('${file.url}', '${fileName}')">
+                            <span class="card-title" title="${file.name}">${file.name}</span>
+                            <span class="card-meta">${formatBytes(file.size)}</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn-mini" title="Download" onclick="event.stopPropagation(); downloadFile('${file.url}', '${fileName}')">
+                                <i data-lucide="download" size="16"></i>
+                            </button>
+                            <button class="btn-mini danger" title="Delete" onclick="event.stopPropagation(); deleteFile('${file.messageId}')">
+                                <i data-lucide="trash-2" size="16"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function updateStats(count, bytes) {
+            fileCountSpan.textContent = count;
+            totalSizeSpan.textContent = formatBytes(bytes);
+        }
+
+        function getFileIconName(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const map = {
+                'pdf': 'file-pdf',
+                'doc': 'file-text', 'docx': 'file-text', 'txt': 'file-text',
+                'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image', 'webp': 'image',
+                'zip': 'archive', 'rar': 'archive', '7z': 'archive',
+                'mp3': 'music', 'wav': 'music', 'flac': 'music',
+                'mp4': 'video', 'mkv': 'video', 'avi': 'video',
+                'xls': 'table', 'xlsx': 'table', 'csv': 'table'
+            };
+            return map[ext] || 'file';
+        }
+
+        async function downloadFile(url, filename) {
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
@@ -401,46 +573,49 @@
         }
 
         async function deleteFile(messageId) {
-            if (!confirm('Are you sure you want to delete this file?')) return;
+            if (!confirm('Delete this file permanently?')) return;
+
+            const pill = document.createElement('div');
+            pill.className = 'status-pill';
+            pill.innerHTML = `<i data-lucide="loader-2" size="14"></i><span>Deleting...</span>`;
+            statusContainer.innerHTML = '';
+            statusContainer.appendChild(pill);
+            lucide.createIcons();
 
             try {
-                status.textContent = '⏳ Deleting file...';
-                status.className = '';
-                status.style.display = 'block';
+                const res = await fetch(`/files/${messageId}`, { method: 'DELETE' });
+                const data = await res.json();
 
-                const response = await fetch(`/files/${messageId}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    status.textContent = '✅ File deleted!';
-                    status.className = 'success';
+                if (res.ok) {
+                    pill.className = 'status-pill success';
+                    pill.innerHTML = `<i data-lucide="check-circle-2" size="14" style="color: #22c55e"></i><span>File deleted</span>`;
+                    lucide.createIcons();
                     loadFiles();
                 } else {
-                    status.textContent = `❌ Error: ${data.error}`;
-                    status.className = 'error';
+                    pill.className = 'status-pill error';
+                    pill.innerHTML = `<i data-lucide="alert-circle" size="14" style="color: #ef4444"></i><span>Error: ${data.error}</span>`;
+                    lucide.createIcons();
                 }
             } catch (error) {
-                status.textContent = `❌ Error: ${error.message}`;
-                status.className = 'error';
+                pill.className = 'status-pill error';
+                pill.innerHTML = `<i data-lucide="alert-circle" size="14" style="color: #ef4444"></i><span>Network error</span>`;
+                lucide.createIcons();
             }
+
+            setTimeout(() => pill.remove(), 4000);
         }
 
         function formatBytes(bytes) {
             if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        // Load files on page load
+        // Initial load and periodic refresh
         loadFiles();
-        
-        // Refresh file list every 5 seconds
-        setInterval(loadFiles, 5000);
+        setInterval(loadFiles, 15000);
     </script>
 </body>
+
 </html>

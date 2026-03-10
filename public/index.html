@@ -9,6 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PrismJS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
     <style>
         :root {
             --bg: #0b0b0b;
@@ -376,24 +379,22 @@
         }
 
         .code-viewer {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.5;
-            padding: 20px;
-            color: var(--text-main);
-            white-space: pre;
-            overflow-wrap: break-word;
+            padding: 20px !important;
+            margin: 0 !important;
+            background: transparent !important;
         }
 
-        .code-viewer .line-number {
-            color: var(--text-dim);
-            user-select: none;
-            display: inline-block;
-            width: 40px;
-            text-align: right;
-            margin-right: 16px;
-            border-right: 1px solid var(--border);
-            padding-right: 16px;
+        /* Prism Overrides */
+        pre[class*="language-"].line-numbers {
+            padding-left: 3.8em;
+            counter-reset: linenumber;
+        }
+
+        .line-numbers .line-numbers-rows {
+            border-right: 1px solid var(--border) !important;
         }
 
         .preview-image {
@@ -796,10 +797,16 @@
                         const content = await response.text();
                         
                         if (isCode) {
-                            const lines = content.split('\n').map((line, i) =>
-                                `<div><span class="line-number">${i + 1}</span>${escapeHtml(line)}</div>`
-                            ).join('');
-                            modalBody.innerHTML = `<div class="code-viewer">${lines}</div>`;
+                            const langMap = {
+                                'js': 'javascript', 'ts': 'typescript', 'py': 'python',
+                                'go': 'go', 'java': 'java', 'cpp': 'cpp', 'c': 'c',
+                                'html': 'markup', 'css': 'css', 'json': 'json',
+                                'xml': 'markup', 'sql': 'sql', 'sh': 'bash',
+                                'md': 'markdown', 'txt': 'none'
+                            };
+                            const language = langMap[ext] || 'none';
+                            modalBody.innerHTML = `<pre class="line-numbers code-viewer"><code class="language-${language}">${escapeHtml(content)}</code></pre>`;
+                            Prism.highlightElement(modalBody.querySelector('code'));
                         } else {
                             modalBody.innerHTML = `<div class="preview-text">${escapeHtml(content)}</div>`;
                         }
@@ -851,6 +858,9 @@
         loadFiles();
         setInterval(loadFiles, 15000);
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 </body>
 
 </html>

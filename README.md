@@ -1,6 +1,6 @@
-# Discord File Host 📦
+# Discord File Host 
 
-A lightweight, high-performance file hosting solution that uses Discord as its backend storage. 
+Use Discord as your Free Storage Drive
 
 
 ##  Setup Instructions

@@ -734,7 +734,8 @@
                 'zip': 'archive', 'rar': 'archive', '7z': 'archive',
                 'mp3': 'music', 'wav': 'music', 'flac': 'music',
                 'mp4': 'video', 'mkv': 'video', 'avi': 'video',
-                'xls': 'table', 'xlsx': 'table', 'csv': 'table'
+                'xls': 'table', 'xlsx': 'table', 'csv': 'table',
+                'conf': 'file-text', 'ini': 'file-text', 'yaml': 'file-text', 'yml': 'file-text'
             };
             return map[ext] || 'file';
         }
@@ -794,9 +795,9 @@
             copyBtn.style.display = 'none';
 
             const ext = originalName.split('.').pop().toLowerCase();
-            const isCode = ['js', 'py', 'go', 'java', 'cpp', 'c', 'html', 'css', 'json', 'xml', 'sql', 'sh', 'md', 'txt'].includes(ext);
+            const isCode = ['js', 'ts', 'py', 'go', 'java', 'cpp', 'c', 'html', 'css', 'json', 'xml', 'sql', 'sh', 'md', 'txt', 'conf', 'ini', 'yaml', 'yml', 'env', 'toml'].includes(ext);
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
-            const isText = ['txt', 'md', 'log', 'csv'].includes(ext);
+            const isText = ['txt', 'md', 'log', 'csv', 'conf', 'ini', 'yaml', 'yml', 'env', 'toml'].includes(ext);
 
             try {
                 if (isCode || isImage || isText) {
@@ -816,7 +817,9 @@
                                 'go': 'go', 'java': 'java', 'cpp': 'cpp', 'c': 'c',
                                 'html': 'markup', 'css': 'css', 'json': 'json',
                                 'xml': 'markup', 'sql': 'sql', 'sh': 'bash',
-                                'md': 'markdown', 'txt': 'none'
+                                'md': 'markdown', 'txt': 'none', 'conf': 'ini',
+                                'ini': 'ini', 'yaml': 'yaml', 'yml': 'yaml',
+                                'env': 'bash', 'toml': 'toml'
                             };
                             const language = langMap[ext] || 'none';
                             modalBody.innerHTML = `<pre class="line-numbers code-viewer"><code class="language-${language}">${escapeHtml(content)}</code></pre>`;

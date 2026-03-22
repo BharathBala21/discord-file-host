@@ -35,5 +35,5 @@ Use Discord as your Free Storage Drive
 # Start the server
 node server.js
 ```
-The app will be available at `http://localhost:3000`.
+The app will be available here :  `http://localhost:3000`.
 

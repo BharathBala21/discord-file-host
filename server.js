@@ -14,13 +14,17 @@ const upload = multer({ dest: 'uploads/' });
 
 // Discord bot setup
 const client = new Client({ 
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages]
+  intents: [
+    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const UPLOAD_CHANNEL_ID = process.env.UPLOAD_CHANNEL_ID;
 
-client.once('clientReady', () => {
+client.once('ready', () => {
   console.log('✅ Discord bot logged in');
   refreshCache(); // Initialize cache on login
 });

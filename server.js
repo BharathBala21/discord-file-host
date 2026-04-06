@@ -11,6 +11,24 @@ dotenv.config();
 
 const app = express();
 const upload = multer({ dest: 'uploads/' });
+const SECTIONS_FILE = './sections.json';
+
+// Ensure sections file exists
+if (!fs.existsSync(SECTIONS_FILE)) {
+  fs.writeFileSync(SECTIONS_FILE, JSON.stringify(['General']));
+}
+
+function getSections() {
+  try {
+    return JSON.parse(fs.readFileSync(SECTIONS_FILE));
+  } catch {
+    return ['General'];
+  }
+}
+
+function saveSections(sections) {
+  fs.writeFileSync(SECTIONS_FILE, JSON.stringify(sections, null, 2));
+}
 
 // Discord bot setup
 const client = new Client({ 
@@ -70,12 +88,18 @@ async function refreshCache() {
 
       messages.forEach(msg => {
         if (msg.attachments.size > 0) {
+          // Try to extract section from embed fields
+          const embed = msg.embeds[0];
+          const sectionField = embed?.fields?.find(f => f.name.includes('Section'));
+          const section = sectionField ? sectionField.value : 'General';
+
           msg.attachments.forEach(att => {
             files.push({
               name: att.name,
               url: att.url,
               size: att.size,
-              messageId: msg.id
+              messageId: msg.id,
+              section: section
             });
           });
         }
@@ -96,6 +120,33 @@ app.get('/', (req, res) => {
   res.sendFile('public/index.html', { root: '.' });
 });
 
+// Sections management endpoints
+app.get('/sections', (req, res) => {
+  res.json(getSections());
+});
+
+app.post('/sections', (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Invalid section name' });
+  
+  const sections = getSections();
+  if (sections.includes(name)) return res.status(400).json({ error: 'Section already exists' });
+  
+  sections.push(name);
+  saveSections(sections);
+  res.json({ success: true, sections });
+});
+
+app.delete('/sections/:name', (req, res) => {
+  const { name } = req.params;
+  if (name === 'General') return res.status(400).json({ error: 'Cannot delete General section' });
+  
+  let sections = getSections();
+  sections = sections.filter(s => s !== name);
+  saveSections(sections);
+  res.json({ success: true, sections });
+});
+
 // Upload endpoint
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -103,17 +154,19 @@ app.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file provided' });
     }
 
+    const section = req.body.section || 'General';
     const channel = await client.channels.fetch(UPLOAD_CHANNEL_ID);
     
     // Create a rich embed
     const embed = new EmbedBuilder()
       .setTitle('📄 New File Uploaded')
-      .setDescription(`**${req.file.originalname}** has been hosted successfully.`)
+      .setDescription(`**${req.file.originalname}** has been hosted successfully in **${section}**.`)
       .addFields(
         { name: '📂 Filename', value: req.file.originalname, inline: true },
-        { name: '📏 Size', value: formatBytes(req.file.size), inline: true }
+        { name: '📏 Size', value: formatBytes(req.file.size), inline: true },
+        { name: '🏷️ Section', value: section, inline: true }
       )
-      .setColor('#3b82f6')
+      .setColor(section === 'General' ? '#3b82f6' : '#f59e0b')
       .setTimestamp();
 
     // Send file and embed to Discord
@@ -133,7 +186,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `✅ ${req.file.originalname} uploaded!` 
+      message: `✅ ${req.file.originalname} uploaded to ${section}!` 
     });
 
   } catch (error) {

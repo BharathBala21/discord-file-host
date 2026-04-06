@@ -461,58 +461,181 @@
         <section>
             <div class="section-header">
                 <h2 class="section-title">Upload</h2>
+                <div class="section-selector-container">
+                    <div class="section-selector" id="sectionSelector">
+                        <!-- Dynamic buttons will be inserted here -->
+                    </div>
+                    <button class="add-section-btn" onclick="addNewShelf()">
+                        <i data-lucide="plus" size="14"></i>
+                    </button>
+                </div>
             </div>
             <div class="grid">
                 <div class="upload-area" id="uploadZone">
                     <input type="file" id="fileInput" multiple style="display: none;">
-                    <i data-lucide="cloud-upload" size="32" style="margin-bottom: 12px; color: var(--text-dim);"></i>
-                    <p style="font-size: 14px; font-weight: 500;">Drop files here to host</p>
+                    <i id="uploadIcon" data-lucide="cloud-upload" size="32" style="margin-bottom: 12px; color: var(--text-dim); transition: var(--transition);"></i>
+                    <p style="font-size: 14px; font-weight: 500;">Drop <span id="currentSectionText">General</span> files to host</p>
                     <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Max 25MB per file</p>
                 </div>
                 <div id="status-container"></div>
             </div>
         </section>
 
-        <section id="librarySection">
-            <div class="section-header">
-                <h2 class="section-title">Library</h2>
-                <div class="stats-info">
-                    <span id="fileCount">0</span> Files — <span id="totalSize">0 B</span>
+        <!-- Dynamic sections will be injected into this container -->
+        <div id="dynamicSectionsContainer">
+            <section id="librarySection">
+                <div class="section-header">
+                    <h2 class="section-title">General Library</h2>
+                    <div class="stats-info">
+                        <span id="fileCount">0</span> Files — <span id="totalSize">0 B</span>
+                    </div>
                 </div>
-            </div>
 
-            <div style="margin-bottom: 32px;">
-                <input type="text" id="searchInput" placeholder="Search files..." style="
-                        width: 100%;
-                        background: var(--surface);
-                        border: 1px solid var(--border);
-                        border-radius: 6px;
-                        padding: 12px 16px;
-                        color: var(--text-main);
-                        font-size: 14px;
-                        font-family: 'Inter', sans-serif;
-                        transition: var(--transition);
-                    " />
+                <div style="margin-bottom: 32px;">
+                    <input type="text" id="searchInput" placeholder="Search files..." style="
+                            width: 100%;
+                            background: var(--surface);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 12px 16px;
+                            color: var(--text-main);
+                            font-size: 14px;
+                            font-family: 'Inter', sans-serif;
+                            transition: var(--transition);
+                        " />
+                </div>
+
+                <div class="grid" id="fileList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📂</div>
+                        <div>No files yet. Upload something to get started.</div>
+                    </div>
+                </div>
+            </section>
                 <style>
-                    #searchInput:focus {
-                        outline: none;
-                        border-color: var(--accent);
-                        background: #1a1a1a;
-                    }
+            #searchInput:focus {
+                outline: none;
+                border-color: var(--accent);
+                background: #1a1a1a;
+            }
 
-                    #searchInput::placeholder {
-                        color: var(--text-dim);
-                    }
-                </style>
-            </div>
+            #searchInput::placeholder {
+                color: var(--text-dim);
+            }
 
-            <div class="grid" id="fileList">
-                <div class="empty-state">
-                    <div class="empty-icon">📂</div>
-                    <div>No files yet. Upload something to get started.</div>
-                </div>
-            </div>
-        </section>
+            .section-selector-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .section-selector {
+                display: flex;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 4px;
+                gap: 4px;
+            }
+
+            .selector-btn {
+                padding: 6px 16px;
+                border: none;
+                background: transparent;
+                color: var(--text-dim);
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: var(--transition);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .selector-btn.active {
+                background: rgba(255, 255, 255, 0.05);
+                color: var(--text-main);
+            }
+
+            .selector-btn:not([data-section="General"]).active {
+                color: #f59e0b;
+                background: rgba(245, 158, 11, 0.1);
+            }
+
+            .add-section-btn {
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                border: 1px solid var(--border);
+                background: var(--surface);
+                color: var(--text-dim);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: var(--transition);
+            }
+
+            .add-section-btn:hover {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+
+            .remove-section-btn {
+                opacity: 0;
+                transition: var(--transition);
+                color: var(--text-dim);
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                padding: 2px;
+                display: none;
+            }
+
+            .selector-btn:hover .remove-section-btn, .selector-btn.active .remove-section-btn {
+                opacity: 1;
+                display: flex;
+            }
+
+            .remove-section-btn:hover {
+                color: #ef4444 !important;
+            }
+
+            .dynamic-grid .card {
+                border-left: 4px solid #f59e0b;
+            }
+
+            .dynamic-grid .card:hover {
+                border-color: #f59e0b;
+                background: rgba(245, 158, 11, 0.05);
+            }
+            
+            .dynamic-grid .card-icon {
+                color: #f59e0b;
+                background: rgba(245, 158, 11, 0.1);
+            }
+
+            .section-delete-btn {
+                font-size: 11px;
+                padding: 4px 8px;
+                border: 1px solid rgba(239, 68, 68, 0.2);
+                border-radius: 4px;
+                background: rgba(239, 68, 68, 0.05);
+                color: #ef4444;
+                cursor: pointer;
+                transition: var(--transition);
+            }
+
+            .section-delete-btn:hover {
+                background: rgba(239, 68, 68, 0.1);
+                border-color: #ef4444;
+            }
+        </style> </div>
+
+        <div id="dynamicSectionsContainer">
+            <!-- Library Sections will be injected here -->
+        </div>
     </div>
 
     <!-- Preview Modal -->
@@ -604,6 +727,152 @@
             handleFiles(e.target.files);
         });
 
+        let currentSection = 'General';
+        let availableSections = ['General'];
+        const sectionSelector = document.getElementById('sectionSelector');
+        const dynamicSectionsContainer = document.getElementById('dynamicSectionsContainer');
+        const currentSectionText = document.getElementById('currentSectionText');
+        const uploadIcon = document.getElementById('uploadIcon');
+
+        async function fetchSections() {
+            try {
+                const res = await fetch('/sections');
+                availableSections = await res.json();
+                renderSectionUI();
+                displayFiles(allFiles); // Re-render files into new sections
+            } catch (err) {
+                console.error('Failed to fetch sections:', err);
+            }
+        }
+
+        function renderSectionUI() {
+            // Render Selector
+            sectionSelector.innerHTML = availableSections.map(section => `
+                <button class="selector-btn ${section === currentSection ? 'active' : ''}" data-section="${section}" onclick="selectSection('${section}')">
+                    ${section}
+                    ${section !== 'General' ? `<span class="remove-section-btn" onclick="event.stopPropagation(); deleteShelf('${section}')"><i data-lucide="x" size="10"></i></span>` : ''}
+                </button>
+            `).join('');
+
+            // Render Grids only for the sections that aren't the main library (General is handled separately)
+            // Actually, let's make it cleaner: General is always first, then others.
+            let html = '';
+            
+            // Search Input (only once at the top of the first section)
+            const searchHtml = `
+                <div style="margin-bottom: 32px;">
+                    <input type="text" id="searchInput" placeholder="Search files..." oninput="handleSearch(event)" style="
+                            width: 100%;
+                            background: var(--surface);
+                            border: 1px solid var(--border);
+                            border-radius: 6px;
+                            padding: 12px 16px;
+                            color: var(--text-main);
+                            font-size: 14px;
+                            font-family: 'Inter', sans-serif;
+                            transition: var(--transition);
+                        " />
+                </div>
+            `;
+
+            availableSections.forEach((section, index) => {
+                const isGeneral = section === 'General';
+                html += `
+                    <section id="section-${section}" style="${index > 0 ? 'margin-top: 80px;' : 'margin-top: 40px;'}">
+                        <div class="section-header">
+                            <h2 class="section-title" style="${!isGeneral ? 'color: #f59e0b;' : ''}">${section === 'General' ? 'General Library' : section}</h2>
+                            <div class="stats-info">
+                                <span id="count-${section}">0</span> Files — <span id="size-${section}">0 B</span>
+                            </div>
+                        </div>
+                        ${index === 0 ? searchHtml : ''}
+                        <div class="grid ${!isGeneral ? 'dynamic-grid' : ''}" id="list-${section}">
+                            <div class="empty-state">
+                                <div class="empty-icon">${isGeneral ? '📂' : '📦'}</div>
+                                <div>No files in ${section}.</div>
+                            </div>
+                        </div>
+                    </section>
+                `;
+            });
+            
+            dynamicSectionsContainer.innerHTML = html;
+            lucide.createIcons();
+            
+            // Re-apply search listener because it was replaced
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = lastSearchQuery;
+            }
+        }
+
+        let lastSearchQuery = '';
+        function handleSearch(e) {
+            lastSearchQuery = e.target.value.toLowerCase();
+            filterAndDisplayFiles(lastSearchQuery);
+        }
+
+        function selectSection(section) {
+            currentSection = section;
+            currentSectionText.textContent = section;
+            
+            // Update UI state
+            document.querySelectorAll('.selector-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.section === section);
+            });
+
+            if (section !== 'General') {
+                uploadIcon.style.color = '#f59e0b';
+                uploadZone.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+            } else {
+                uploadIcon.style.color = 'var(--text-dim)';
+                uploadZone.style.borderColor = 'var(--border)';
+            }
+        }
+
+        async function addNewShelf() {
+            const name = prompt('Enter shelf name:');
+            if (!name) return;
+            
+            try {
+                const res = await fetch('/sections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (res.ok) {
+                    await fetchSections();
+                    selectSection(name);
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to add shelf');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteShelf(name) {
+            if (!confirm(`Delete the shelf "${name}"? Files in this shelf will still exist but won't be indexed correctly in this UI until you create the shelf again.`)) return;
+
+            try {
+                const res = await fetch(`/sections/${name}`, { method: 'DELETE' });
+                if (res.ok) {
+                    if (currentSection === name) selectSection('General');
+                    await fetchSections();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to delete shelf');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Initialize sections
+        fetchSections();
+
         async function handleFiles(files) {
             for (let file of files) {
                 await uploadFile(file);
@@ -613,10 +882,11 @@
         async function uploadFile(file) {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('section', currentSection);
 
             const pill = document.createElement('div');
             pill.className = 'status-pill';
-            pill.innerHTML = `<i data-lucide="loader-2" size="14"></i><span>Uploading ${file.name}...</span>`;
+            pill.innerHTML = `<i data-lucide="loader-2" size="14"></i><span>Uploading ${file.name} to ${currentSection}...</span>`;
             statusContainer.innerHTML = '';
             statusContainer.appendChild(pill);
             lucide.createIcons();
@@ -627,7 +897,7 @@
 
                 if (response.ok) {
                     pill.className = 'status-pill success';
-                    pill.innerHTML = `<i data-lucide="check-circle-2" size="14" style="color: #22c55e"></i><span>${file.name} uploaded</span>`;
+                    pill.innerHTML = `<i data-lucide="check-circle-2" size="14" style="color: #22c55e"></i><span>${file.name} uploaded to ${currentSection}</span>`;
                     lucide.createIcons();
                     loadFiles();
                 } else {
@@ -649,26 +919,13 @@
                 const response = await fetch('/files');
                 const data = await response.json();
 
-                if (data.files.length === 0) {
-                    fileList.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📂</div>
-                            <div>No files yet. Upload something to get started.</div>
-                        </div>
-                    `;
-                    updateStats(0, 0);
-                    allFiles = [];
-                    return;
-                }
-
                 // Only re-render if the file list has changed
                 const newFilesJson = JSON.stringify(data.files);
                 const oldFilesJson = JSON.stringify(allFiles);
                 
                 if (newFilesJson !== oldFilesJson) {
-                    allFiles = data.files;
+                    allFiles = data.files || [];
                     displayFiles(allFiles);
-                    updateStats(allFiles.length, allFiles.reduce((sum, f) => sum + f.size, 0));
                 }
             } catch (err) {
                 console.error(err);
@@ -681,22 +938,40 @@
         }
 
         function displayFiles(files) {
+            availableSections.forEach(section => {
+                const sectionFiles = files.filter(f => 
+                    (section === 'General' && (!f.section || f.section === 'General')) || 
+                    (f.section === section)
+                );
+                
+                const isGeneral = section === 'General';
+                renderFileList(sectionFiles, `list-${section}`, isGeneral ? '📂' : '📦', `No files in ${section}.`);
+                updateStats(sectionFiles.length, sectionFiles.reduce((sum, f) => sum + f.size, 0), `count-${section}`, `size-${section}`);
+            });
+
+            lucide.createIcons();
+        }
+
+        function renderFileList(files, elementId, emptyIcon, emptyText) {
+            const container = document.getElementById(elementId);
+            
             if (files.length === 0) {
-                fileList.innerHTML = `
+                container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">📂</div>
-                        <div>No files found.</div>
+                        <div class="empty-icon">${emptyIcon}</div>
+                        <div>${emptyText}</div>
                     </div>
                 `;
                 return;
             }
 
-            fileList.innerHTML = files.map(file => {
+            container.innerHTML = files.map(file => {
                 const fileName = file.name.replace(/'/g, "\\'");
+                const isBook = file.section === 'Books';
                 return `
                     <div class="card">
                         <div class="card-icon">
-                            <i data-lucide="${getFileIconName(file.name)}"></i>
+                            <i data-lucide="${isBook ? 'book' : getFileIconName(file.name)}"></i>
                         </div>
                         <div class="card-content" style="cursor: pointer;" onclick="downloadFile('${file.url}', '${fileName}')">
                             <span class="card-title" title="${file.name}">${file.name}</span>
@@ -716,13 +991,11 @@
                     </div>
                 `;
             }).join('');
-
-            lucide.createIcons();
         }
 
-        function updateStats(count, bytes) {
-            fileCountSpan.textContent = count;
-            totalSizeSpan.textContent = formatBytes(bytes);
+        function updateStats(count, bytes, countId, sizeId) {
+            document.getElementById(countId).textContent = count;
+            document.getElementById(sizeId).textContent = formatBytes(bytes);
         }
 
         function getFileIconName(filename) {
